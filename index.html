@@ -393,7 +393,7 @@ window.addEventListener('load', async () => {
   setTodayDate();
   // 1. Check URL hash for magic config
   const hash = location.hash;
-  if (hash && hash.includes('config=')) {
+  if (hash && hash.includes('#setup/')) {
     const code = decodeURIComponent(hash.split('#setup/')[1] || '');
     if (code) {
       try {
