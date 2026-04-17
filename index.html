@@ -394,7 +394,7 @@ window.addEventListener('load', async () => {
   // 1. Check URL hash for magic config
   const hash = location.hash;
   if (hash && hash.includes('config=')) {
-    const code = decodeURIComponent(hash.split('config=')[1] || '');
+    const code = decodeURIComponent(hash.split('#setup/')[1] || '');
     if (code) {
       try {
         const cfg = JSON.parse(atob(code));
