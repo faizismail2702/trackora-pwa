@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Trackora"/>
+  <meta name="theme-color" content="#0D7377"/>
+  <title>Trackora</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <style>
+    :root {
+      --navy:   #1B2A4A; --teal:   #0D7377; --teal-dk:#0A5C60;
+      --teal-lt:#E0F4F4; --green:  #1E8449; --green-lt:#EAFAF1;
+      --red:    #C0392B; --red-lt: #FDEDEC; --purple: #6C3483;
+      --purple-lt:#F5EEF8; --gold:  #D4870A; --gold-lt:#FEF6E7;
+      --white:  #FFFFFF; --off:    #F4F6FA; --border: #DDE3EC;
+      --gray:   #7F8C8D; --text-sm:#566573;
+      --r:14px; --r-sm:9px; --safe-top:env(safe-area-inset-top,0px);
+      --safe-bot:env(safe-area-inset-bottom,0px);
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%;background:var(--off);overflow:hidden}
+    body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;color:var(--navy)}
+
+    /* ──── SCREENS ──────────────────────────────────────── */
+    .screen{position:fixed;inset:0;display:none;flex-direction:column}
+    .screen.show{display:flex}
+
+    /* ──── WELCOME / AUTO-CONFIGURE ─────────────────────── */
+    #scWelcome{background:var(--navy);align-items:center;justify-content:center;
+      padding:32px;text-align:center}
+    .welcome-icon{font-size:56px;margin-bottom:16px}
+    .welcome-title{color:var(--white);font-size:26px;font-weight:800;
+      letter-spacing:-.5px;margin-bottom:6px}
+    .welcome-sub{color:rgba(255,255,255,.5);font-size:13px;margin-bottom:40px;
+      line-height:1.5}
+    .welcome-spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.15);
+      border-top-color:var(--teal);border-radius:50%;
+      animation:spin .7s linear infinite;margin:0 auto 12px}
+    .welcome-msg{color:rgba(255,255,255,.5);font-size:12px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ──── MANUAL SETUP (fallback) ───────────────────────── */
+    #scSetup{background:var(--navy);padding:calc(var(--safe-top) + 32px) 24px 32px;
+      justify-content:center;overflow-y:auto}
+    .setup-logo{font-size:44px;text-align:center;margin-bottom:14px}
+    .setup-title{color:var(--white);font-size:22px;font-weight:800;text-align:center;
+      margin-bottom:6px;letter-spacing:-.3px}
+    .setup-sub{color:rgba(255,255,255,.45);font-size:12.5px;text-align:center;
+      line-height:1.6;margin-bottom:28px}
+    .setup-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+      border-radius:var(--r);padding:20px}
+    .s-label{color:rgba(255,255,255,.6);font-size:10.5px;font-weight:700;
+      text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block}
+    .s-input{width:100%;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.12);
+      border-radius:var(--r-sm);padding:12px 14px;color:var(--white);font-size:13px;
+      outline:none;font-family:inherit;margin-bottom:6px}
+    .s-input::placeholder{color:rgba(255,255,255,.25)}
+    .s-input:focus{border-color:var(--teal);background:rgba(255,255,255,.1)}
+    .s-hint{color:rgba(255,255,255,.3);font-size:10.5px;margin-bottom:16px;line-height:1.5}
+    .s-btn{width:100%;padding:14px;background:var(--teal);border:none;border-radius:var(--r-sm);
+      color:var(--white);font-size:15px;font-weight:700;cursor:pointer;
+      font-family:inherit;transition:.15s}
+    .s-btn:active{background:var(--teal-dk)}
+    .s-err{color:#FF8A80;font-size:11.5px;margin-top:10px;text-align:center;display:none}
+
+    /* ──── MAIN APP ─────────────────────────────────────── */
+    #scApp{background:var(--off)}
+    
+    .app-head{
+      background:linear-gradient(150deg,var(--navy) 0%,#12404F 100%);
+      padding:calc(var(--safe-top) + 14px) 16px 0;
+      flex-shrink:0;
+    }
+    .head-row{display:flex;justify-content:space-between;align-items:center;
+      padding-bottom:14px}
+    .head-brand{display:flex;align-items:center;gap:9px}
+    .brand-icon{width:34px;height:34px;background:var(--teal);border-radius:9px;
+      display:flex;align-items:center;justify-content:center;font-size:17px}
+    .brand-name{color:var(--white);font-size:16px;font-weight:800;letter-spacing:-.2px}
+    .brand-date{color:rgba(255,255,255,.4);font-size:10px}
+    .head-action{width:36px;height:36px;background:rgba(255,255,255,.09);
+      border:none;border-radius:9px;color:var(--white);font-size:15px;cursor:pointer;
+      display:flex;align-items:center;justify-content:center}
+    .head-action:active{background:rgba(255,255,255,.18)}
+
+    /* Type pills */
+    .type-pills{display:flex;gap:6px;padding:0 16px 14px;overflow-x:auto;scrollbar-width:none}
+    .type-pills::-webkit-scrollbar{display:none}
+    .pill{flex-shrink:0;padding:8px 18px;border-radius:20px;
+      border:1.5px solid rgba(255,255,255,.18);background:transparent;
+      color:rgba(255,255,255,.55);font-size:12px;font-weight:700;cursor:pointer;
+      font-family:inherit;transition:.15s;white-space:nowrap}
+    .pill.exp{background:#C0392B;border-color:#C0392B;color:var(--white)}
+    .pill.inc{background:var(--green);border-color:var(--green);color:var(--white)}
+    .pill.trf{background:var(--purple);border-color:var(--purple);color:var(--white)}
+
+    /* Form scroll area */
+    .form-area{flex:1;overflow-y:auto;padding:14px 14px 0;
+      -webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .form-area::-webkit-scrollbar{display:none}
+
+    /* Cards */
+    .card{background:var(--white);border-radius:var(--r);padding:16px;
+      margin-bottom:12px;box-shadow:0 2px 8px rgba(27,42,74,.06)}
+    
+    /* Fields */
+    .fld{margin-bottom:14px}
+    .fld:last-child{margin-bottom:0}
+    .fld-lbl{font-size:10.5px;font-weight:700;color:var(--text-sm);
+      text-transform:uppercase;letter-spacing:.45px;margin-bottom:5px;
+      display:flex;align-items:center;gap:3px}
+    .req{color:var(--red);font-size:9px}
+    .fld-inp,.fld-sel{width:100%;padding:11px 13px;border:1.5px solid var(--border);
+      border-radius:var(--r-sm);font-size:14px;color:var(--navy);background:var(--white);
+      outline:none;font-family:inherit;transition:.15s;appearance:none;-webkit-appearance:none}
+    .fld-inp:focus,.fld-sel:focus{border-color:var(--teal);
+      box-shadow:0 0 0 3px rgba(13,115,119,.1)}
+    .sel-wrap{position:relative}
+    .sel-wrap::after{content:'▾';position:absolute;right:12px;top:50%;
+      transform:translateY(-50%);color:var(--gray);pointer-events:none;font-size:12px}
+    .amt-wrap{position:relative}
+    .amt-pre{position:absolute;left:13px;top:50%;transform:translateY(-50%);
+      color:var(--text-sm);font-weight:700;font-size:13px;pointer-events:none}
+    .amt-wrap .fld-inp{padding-left:40px;font-size:16px;font-weight:800;color:var(--navy)}
+    .fld-inp::placeholder{color:#BDC3C7;font-weight:400;font-size:14px}
+
+    /* Info boxes */
+    .info-box{border-radius:var(--r-sm);padding:10px 12px;font-size:11.5px;
+      line-height:1.5;margin-bottom:10px;display:none}
+    .info-orange{background:var(--gold-lt);border:1px solid var(--gold);color:#7D4E00}
+    .info-blue{background:var(--teal-lt);border:1px solid var(--teal);color:var(--teal-dk)}
+
+    /* Submit bar */
+    .submit-bar{
+      background:var(--white);border-top:1px solid var(--border);
+      padding:11px 14px;padding-bottom:calc(var(--safe-bot) + 11px);
+      flex-shrink:0;display:flex;gap:8px;
+    }
+    .btn-sub{flex:1;padding:14px;border:none;border-radius:var(--r-sm);
+      font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;
+      letter-spacing:.1px;transition:.15s}
+    .btn-sub:active{transform:scale(.975)}
+    .btn-sub:disabled{opacity:.45;transform:none;cursor:not-allowed}
+    .btn-exp{background:var(--red);color:var(--white)}
+    .btn-inc{background:var(--green);color:var(--white)}
+    .btn-trf{background:var(--purple);color:var(--white)}
+    .btn-rst{padding:14px 16px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+      background:var(--white);font-size:13px;cursor:pointer;color:var(--text-sm);
+      font-family:inherit;transition:.15s}
+    .btn-rst:active{background:var(--off)}
+
+    /* Toast */
+    .toast{position:fixed;bottom:calc(var(--safe-bot) + 90px);left:50%;
+      transform:translateX(-50%) translateY(16px);
+      background:var(--navy);color:var(--white);padding:11px 20px;
+      border-radius:22px;font-size:13px;font-weight:600;
+      box-shadow:0 6px 24px rgba(0,0,0,.2);z-index:999;
+      opacity:0;transition:.25s;white-space:nowrap;
+      max-width:calc(100vw - 32px);text-align:center;pointer-events:none}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .toast.ok{background:var(--green)}
+    .toast.err{background:var(--red)}
+
+    /* Loading overlay */
+    #overlay{position:fixed;inset:0;background:rgba(27,42,74,.45);
+      display:none;align-items:center;justify-content:center;z-index:300}
+    .ov-spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.2);
+      border-top-color:var(--white);border-radius:50%;animation:spin .75s linear infinite}
+
+    /* Settings panel */
+    #scSettings{background:var(--off);overflow-y:auto;z-index:50}
+    .stt-head{background:var(--navy);color:var(--white);
+      padding:calc(var(--safe-top) + 16px) 16px 16px;
+      display:flex;align-items:center;gap:12px;flex-shrink:0}
+    .stt-head h2{font-size:16px;font-weight:700}
+    .back-btn{background:none;border:none;color:var(--white);
+      font-size:22px;cursor:pointer;line-height:1;padding:0 4px 0 0}
+    .stt-section{background:var(--white);border-radius:var(--r);
+      padding:16px;margin:14px 14px 0;box-shadow:0 2px 8px rgba(27,42,74,.06)}
+    .stt-sec-title{font-size:11px;font-weight:700;color:var(--text-sm);
+      text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+    .stt-row{display:flex;justify-content:space-between;align-items:flex-start;
+      padding:10px 0;border-bottom:1px solid var(--off);gap:12px}
+    .stt-row:last-child{border-bottom:none;padding-bottom:0}
+    .stt-row-lbl{font-size:13px;color:var(--navy);flex-shrink:0}
+    .stt-row-val{font-size:11.5px;color:var(--text-sm);text-align:right;
+      word-break:break-all;max-width:60%}
+    .stt-status{display:inline-flex;align-items:center;gap:4px;
+      background:var(--green-lt);border-radius:12px;padding:3px 10px;
+      color:var(--green);font-size:11px;font-weight:700}
+    .danger-btn{width:100%;padding:13px;background:var(--red-lt);
+      border:1.5px solid var(--red);border-radius:var(--r-sm);
+      color:var(--red);font-size:14px;font-weight:600;cursor:pointer;
+      font-family:inherit;margin-top:8px}
+    .danger-btn:active{background:#FAACAA}
+  </style>
+</head>
+<body>
+
+<!-- Loading / Auto-configure screen -->
+<div class="screen show" id="scWelcome">
+  <div class="welcome-icon">💰</div>
+  <div class="welcome-title">Trackora</div>
+  <div class="welcome-sub">Financial Tracker Pro<br>by Zulfinfinity Digital Labs</div>
+  <div class="welcome-spinner"></div>
+  <div class="welcome-msg" id="welcomeMsg">Menyiapkan aplikasi...</div>
+</div>
+
+<!-- Manual setup (fallback jika tidak ada magic link) -->
+<div class="screen" id="scSetup">
+  <div class="setup-logo">💰</div>
+  <div class="setup-title">Trackora</div>
+  <div class="setup-sub">Hubungkan ke spreadsheet kamu.<br>Dapatkan link setup dari penjual.</div>
+  <div class="setup-card">
+    <label class="s-label">Web App URL *</label>
+    <input class="s-input" id="sUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec"/>
+    <p class="s-hint">Dapatkan URL ini dari menu Setup PWA di spreadsheet</p>
+    <label class="s-label">Access Token *</label>
+    <input class="s-input" id="sToken" type="password" placeholder="Token dari spreadsheet"/>
+    <p class="s-hint">Token tersedia di spreadsheet → Extensions → Apps Script → Script Properties</p>
+    <button class="s-btn" onclick="manualSetup()">🔗 Hubungkan</button>
+    <div class="s-err" id="sErr"></div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div class="screen" id="scApp">
+  <div class="app-head">
+    <div class="head-row">
+      <div class="head-brand">
+        <div class="brand-icon">💰</div>
+        <div>
+          <div class="brand-name">Trackora</div>
+          <div class="brand-date" id="hDate"></div>
+        </div>
+      </div>
+      <button class="head-action" onclick="show('scSettings')">⚙️</button>
+    </div>
+    <div class="type-pills">
+      <button class="pill exp" id="pill-Expense"  onclick="setType('Expense')">📤 Pengeluaran</button>
+      <button class="pill"     id="pill-Income"   onclick="setType('Income')">📥 Pemasukan</button>
+      <button class="pill"     id="pill-Transfer" onclick="setType('Transfer')">🔄 Transfer</button>
+    </div>
+  </div>
+
+  <div class="form-area" id="formArea">
+    <!-- Date -->
+    <div class="card">
+      <div class="fld">
+        <div class="fld-lbl">Tanggal <span class="req">*</span></div>
+        <input class="fld-inp" type="date" id="fDate"/>
+      </div>
+    </div>
+
+    <!-- Category -->
+    <div class="card" id="crdCat">
+      <div class="fld" id="grpInc" style="display:none">
+        <div class="fld-lbl">Kategori <span class="req">*</span></div>
+        <div class="sel-wrap">
+          <select class="fld-sel" id="fIncCat" onchange="onCatChange()">
+            <option value="">— Pilih Kategori —</option>
+          </select>
+        </div>
+      </div>
+      <div class="fld" id="grpExp">
+        <div class="fld-lbl">Kategori <span class="req">*</span></div>
+        <div class="sel-wrap">
+          <select class="fld-sel" id="fExpCat" onchange="onCatChange()">
+            <option value="">— Pilih Kategori —</option>
+          </select>
+        </div>
+      </div>
+      <div class="fld" id="grpTag" style="display:none">
+        <div class="fld-lbl">Tag <span style="font-size:9px;color:var(--text-sm);text-transform:none;font-weight:400">(opsional)</span></div>
+        <div class="sel-wrap">
+          <select class="fld-sel" id="fTag">
+            <option value="">— Pilih Tag —</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info boxes -->
+    <div class="info-box info-orange" id="ioPiutang"></div>
+    <div class="info-box info-blue"   id="ioSub"></div>
+
+    <!-- Account (transaction) -->
+    <div class="card" id="crdAcc">
+      <div class="fld">
+        <div class="fld-lbl">Rekening <span class="req">*</span></div>
+        <div class="sel-wrap">
+          <select class="fld-sel" id="fAcc">
+            <option value="">— Pilih Rekening —</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transfer accounts -->
+    <div class="card" id="crdTrf" style="display:none">
+      <div class="fld">
+        <div class="fld-lbl">Rekening Asal <span class="req">*</span></div>
+        <div class="sel-wrap">
+          <select class="fld-sel" id="fSrc">
+            <option value="">— Pilih —</option>
+          </select>
+        </div>
+      </div>
+      <div class="fld">
+        <div class="fld-lbl">Rekening Tujuan <span class="req">*</span></div>
+        <div class="sel-wrap">
+          <select class="fld-sel" id="fDst">
+            <option value="">— Pilih —</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Amount & Details -->
+    <div class="card">
+      <div class="fld">
+        <div class="fld-lbl">Jumlah (Rp) <span class="req">*</span></div>
+        <div class="amt-wrap">
+          <span class="amt-pre">Rp</span>
+          <input class="fld-inp" type="number" id="fAmt"
+            min="1" placeholder="0" inputmode="numeric"/>
+        </div>
+      </div>
+      <div class="fld">
+        <div class="fld-lbl">Keterangan</div>
+        <input class="fld-inp" type="text" id="fDet"
+          placeholder="Opsional" maxlength="100"/>
+      </div>
+    </div>
+    <div style="height:4px"></div><!-- spacer -->
+  </div>
+
+  <div class="submit-bar">
+    <button class="btn-sub btn-exp" id="btnSub" onclick="doSubmit()">📤 Simpan Pengeluaran</button>
+    <button class="btn-rst" onclick="resetForm()">↺</button>
+  </div>
+</div>
+
+<!-- Settings -->
+<div class="screen" id="scSettings">
+  <div class="stt-head">
+    <button class="back-btn" onclick="show('scApp')">←</button>
+    <h2>Pengaturan</h2>
+  </div>
+  <div class="stt-section">
+    <div class="stt-sec-title">Status Koneksi</div>
+    <div class="stt-row">
+      <span class="stt-row-lbl">Status</span>
+      <span class="stt-status">🟢 Terhubung</span>
+    </div>
+    <div class="stt-row">
+      <span class="stt-row-lbl">Web App URL</span>
+      <span class="stt-row-val" id="stUrl">—</span>
+    </div>
+    <div class="stt-row">
+      <span class="stt-row-lbl">Token</span>
+      <span class="stt-row-val">••••••••</span>
+    </div>
+  </div>
+  <div class="stt-section">
+    <div class="stt-sec-title">Reset</div>
+    <button class="danger-btn" onclick="doReset()">🗑️ Hapus Pengaturan & Reset Aplikasi</button>
+  </div>
+</div>
+
+<!-- Overlay loading -->
+<div id="overlay"><div class="ov-spinner"></div></div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────
+const K = { URL:'trk_url', TOKEN:'trk_token' };
+let DD = {};         // dropdown data
+let curType = 'Expense';
+
+// ── BOOT ──────────────────────────────────────────────────
+window.addEventListener('load', async () => {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+  setTodayDate();
+  // 1. Check URL hash for magic config
+  const hash = location.hash;
+  if (hash && hash.includes('config=')) {
+    const code = decodeURIComponent(hash.split('config=')[1] || '');
+    if (code) {
+      try {
+        const cfg = JSON.parse(atob(code));
+        if (cfg.url && cfg.token) {
+          localStorage.setItem(K.URL,   cfg.url);
+          localStorage.setItem(K.TOKEN, cfg.token);
+          // Clean URL so token not visible
+          history.replaceState(null, '', location.pathname);
+          setMsg('✅ Konfigurasi berhasil! Memuat data...');
+          await bootApp();
+          return;
+        }
+      } catch(e) {
+        setMsg('⚠️ Config tidak valid, setup manual...');
+        await sleep(1200);
+        show('scSetup');
+        return;
+      }
+    }
+  }
+  // 2. Check existing config
+  if (localStorage.getItem(K.URL) && localStorage.getItem(K.TOKEN)) {
+    setMsg('Menghubungkan ke spreadsheet...');
+    await bootApp();
+  } else {
+    await sleep(600);
+    show('scSetup');
+  }
+});
+
+async function bootApp() {
+  show('scApp');
+  initDateHeader();
+  const loaded = await loadDropdowns();
+  if (!loaded) {
+    // Still show app but with empty dropdowns — let user try again
+    showToast('⚠️ Gagal memuat data. Cek koneksi internet.', 'err');
+  }
+}
+
+function setMsg(t) { document.getElementById('welcomeMsg').textContent = t; }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function setTodayDate() {
+  const today = new Date();
+  const v = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+  document.getElementById('fDate').value = v;
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function initDateHeader() {
+  const today = new Date();
+  document.getElementById('hDate').textContent =
+    today.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+}
+
+// ── SHOW/HIDE SCREENS ─────────────────────────────────────
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('show'));
+  document.getElementById(id).classList.add('show');
+  if (id === 'scSettings') {
+    const url = localStorage.getItem(K.URL) || '—';
+    document.getElementById('stUrl').textContent =
+      url.length > 40 ? url.slice(0,38) + '…' : url;
+  }
+}
+
+// ── MANUAL SETUP ──────────────────────────────────────────
+function manualSetup() {
+  const url   = document.getElementById('sUrl').value.trim();
+  const token = document.getElementById('sToken').value.trim();
+  const err   = document.getElementById('sErr');
+  if (!url.startsWith('https://script.google.com')) {
+    err.textContent = '⚠️ URL tidak valid. Harus dari script.google.com';
+    err.style.display = 'block'; return;
+  }
+  if (!token) {
+    err.textContent = '⚠️ Token wajib diisi';
+    err.style.display = 'block'; return;
+  }
+  err.style.display = 'none';
+  localStorage.setItem(K.URL, url);
+  localStorage.setItem(K.TOKEN, token);
+  show('scWelcome');
+  setMsg('Menghubungkan...');
+  bootApp();
+}
+
+// ── API ───────────────────────────────────────────────────
+async function api(payload) {
+  const url   = localStorage.getItem(K.URL);
+  const token = localStorage.getItem(K.TOKEN);
+  payload.token = token;
+  const res = await fetch(url, {
+    method:   'POST',
+    headers:  {'Content-Type':'text/plain;charset=utf-8'},
+    body:     JSON.stringify(payload),
+    redirect: 'follow',
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+async function apiGet(action) {
+  const url   = localStorage.getItem(K.URL);
+  const token = localStorage.getItem(K.TOKEN);
+  const res = await fetch(`${url}?action=${action}&token=${encodeURIComponent(token)}`,
+    {redirect:'follow'});
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+// ── LOAD DROPDOWNS ────────────────────────────────────────
+async function loadDropdowns() {
+  try {
+    const data = await apiGet('getDropdowns');
+    if (data.error) throw new Error(data.error);
+    DD = data;
+    fillDropdowns();
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+function fillDropdowns() {
+  const accs = DD.account || [];
+  ['fAcc','fSrc','fDst'].forEach(id => {
+    const s = document.getElementById(id);
+    s.innerHTML = '<option value="">— Pilih Rekening —</option>';
+    accs.forEach(a => s.innerHTML += `<option value="${a}">${a}</option>`);
+  });
+  const iS = document.getElementById('fIncCat');
+  iS.innerHTML = '<option value="">— Pilih Kategori —</option>';
+  (DD.incomeCat||[]).forEach(c => iS.innerHTML += `<option value="${c}">${c}</option>`);
+  const eS = document.getElementById('fExpCat');
+  eS.innerHTML = '<option value="">— Pilih Kategori —</option>';
+  (DD.expenseCat||[]).forEach(c => eS.innerHTML += `<option value="${c}">${c}</option>`);
+}
+
+// ── TYPE SWITCH ───────────────────────────────────────────
+function setType(t) {
+  curType = t;
+  const cls = {Expense:'exp',Income:'inc',Transfer:'trf'};
+  ['Expense','Income','Transfer'].forEach(x => {
+    const p = document.getElementById('pill-'+x);
+    p.className = 'pill' + (t===x ? ' '+cls[x] : '');
+  });
+  const lbl = {Income:'📥 Simpan Pemasukan',Expense:'📤 Simpan Pengeluaran',Transfer:'🔄 Simpan Transfer'};
+  const btn = document.getElementById('btnSub');
+  btn.textContent = lbl[t];
+  btn.className   = `btn-sub btn-${t.toLowerCase().slice(0,3)}`;
+
+  const isTrf = t==='Transfer';
+  document.getElementById('crdCat').style.display = isTrf?'none':'block';
+  document.getElementById('crdAcc').style.display = isTrf?'none':'block';
+  document.getElementById('crdTrf').style.display = isTrf?'block':'none';
+  document.getElementById('grpInc').style.display = t==='Income'?'block':'none';
+  document.getElementById('grpExp').style.display = t==='Expense'?'block':'none';
+  document.getElementById('grpTag').style.display = 'none';
+  hideInfo();
+}
+
+// ── CATEGORY CHANGE ───────────────────────────────────────
+function onCatChange() {
+  hideInfo();
+  const cat = curType==='Income'
+    ? document.getElementById('fIncCat').value
+    : document.getElementById('fExpCat').value;
+  const grpTag = document.getElementById('grpTag');
+  const selTag = document.getElementById('fTag');
+  selTag.innerHTML = '<option value="">— Pilih Tag —</option>';
+  if (!cat) { grpTag.style.display='none'; return; }
+  const low = cat.toLowerCase();
+  let opts = []; let show = false;
+  if (low.includes('payable')||low.includes('utang')||
+      low.includes('receivable')||low.includes('piutang')) {
+    const el = document.getElementById('ioPiutang');
+    el.innerHTML = `⚠️ <strong>${cat}</strong> dipilih. Pilih tag agar otomatis tercatat di Tracker.`;
+    el.style.display='block';
+    opts = (low.includes('receivable')||low.includes('piutang'))
+      ? (DD.receivableList||[]) : (DD.payableList||[]);
+    show = true;
+  } else if ((DD.subCategories||[]).includes(cat)) {
+    const m = (DD.subMap||[]).filter(i=>i.account===cat);
+    opts = m.map(i=>i.active);
+    const el = document.getElementById('ioSub');
+    el.innerHTML = `ℹ️ Kategori ini memiliki subscription. Pilih tag jika ini pembayaran langganan.`;
+    el.style.display='block';
+    show = true;
+  }
+  if (show) {
+    opts.forEach(o => selTag.innerHTML += `<option value="${o}">${o}</option>`);
+    grpTag.style.display='block';
+  }
+}
+
+function hideInfo() {
+  ['ioPiutang','ioSub'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.style.display='none'; el.innerHTML='';
+  });
+}
+
+// ── SUBMIT ────────────────────────────────────────────────
+async function doSubmit() {
+  const btn  = document.getElementById('btnSub');
+  const date = document.getElementById('fDate').value;
+  const amt  = document.getElementById('fAmt').value;
+  if (!date)               return showToast('⚠️ Tanggal wajib diisi','err');
+  if (!amt||Number(amt)<=0) return showToast('⚠️ Jumlah harus lebih dari 0','err');
+
+  let p = {action:'submit', type:curType, date, amount:amt,
+           details:document.getElementById('fDet').value.trim()};
+  if (curType==='Transfer') {
+    p.sourceAccount      = document.getElementById('fSrc').value;
+    p.destinationAccount = document.getElementById('fDst').value;
+    if (!p.sourceAccount||!p.destinationAccount) return showToast('⚠️ Rekening wajib diisi','err');
+    if (p.sourceAccount===p.destinationAccount)  return showToast('⚠️ Rekening tidak boleh sama','err');
+  } else {
+    p.category = curType==='Income'
+      ? document.getElementById('fIncCat').value
+      : document.getElementById('fExpCat').value;
+    p.account  = document.getElementById('fAcc').value;
+    p.tag      = document.getElementById('fTag').value;
+    if (!p.category) return showToast('⚠️ Kategori wajib diisi','err');
+    if (!p.account)  return showToast('⚠️ Rekening wajib diisi','err');
+  }
+
+  const orig    = btn.textContent;
+  btn.disabled  = true;
+  btn.textContent = '⏳ Menyimpan...';
+  overlay(true);
+  try {
+    const res = await api(p);
+    overlay(false);
+    btn.disabled    = false;
+    btn.textContent = orig;
+    if (res&&res.success) {
+      showToast(res.message||'✅ Berhasil disimpan!','ok');
+      resetForm();
+      document.getElementById('formArea').scrollTo({top:0,behavior:'smooth'});
+    } else {
+      showToast(res?.message||'❌ Gagal menyimpan','err');
+    }
+  } catch(e) {
+    overlay(false);
+    btn.disabled    = false;
+    btn.textContent = orig;
+    showToast('❌ '+e.message,'err');
+  }
+}
+
+function resetForm() {
+  ['fIncCat','fExpCat','fTag','fAcc','fSrc','fDst'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.value='';
+  });
+  document.getElementById('fAmt').value='';
+  document.getElementById('fDet').value='';
+  document.getElementById('grpTag').style.display='none';
+  hideInfo();
+  setTodayDate();
+}
+
+// ── SETTINGS ─────────────────────────────────────────────
+function doReset() {
+  if(!confirm('Reset semua pengaturan? Kamu perlu setup ulang koneksi.')) return;
+  localStorage.clear();
+  location.reload();
+}
+
+// ── HELPERS ───────────────────────────────────────────────
+function overlay(show) {
+  document.getElementById('overlay').style.display = show?'flex':'none';
+}
+let _tt;
+function showToast(msg,type='') {
+  clearTimeout(_tt);
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = `toast ${type} show`;
+  _tt = setTimeout(()=>el.className=`toast ${type}`, 3200);
+}
+</script>
+</body>
+</html>
